@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Favorite Food: Pizza</title>
+</head>
+<body id="top">
+	<header class="site-header" id="main-header">
+		<h1>Pizza: My Favorite Food</h1>
+		<p>
+			Pizza is my favorite food because it is tasty and all the people present in the table can get a slice of it.
+		</p>
+
+		<nav class="main-nav" aria-label="Main navigation">
+			<a href="#about">About Pizza</a> |
+			<a href="#types">Pizza Types</a> |
+			<a href="#pizza-table">Price Table</a> |
+			<a href="#order-form">Order Now</a> |
+			<a href="https://en.wikipedia.org/wiki/Pizza" target="_blank" rel="noopener noreferrer">Learn More</a>
+		</nav>
+	</header>
+
+	<main>
+		<section id="about" class="content-section">
+			<h2>Why Pizza Is Special</h2>
+			<article class="pizza-story">
+				<h3>A Food for Every Mood</h3>
+				<p>
+					Pizza can be simple like cheese pizza or loaded with vegetables, meat, and different sauces.
+					It is soo versatile that it can be enjoyed at anytime of the day
+				</p>
+				<img
+					src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=900&q=80"
+					alt="Freshly baked pizza"
+					width="450"
+				>
+			</article>
+		</section>
+
+		<section id="types" class="content-section">
+			<h2>Popular Pizza Types</h2>
+			<p>Here are some pizza types many people enjoy:</p>
+			<ol class="pizza-types-list">
+				<li>Margherita Pizza</li>
+				<li>Pepperoni Pizza</li>
+				<li>Veg Pizza</li>
+				<li>BBQ Chicken Pizza</li>
+			</ol>
+
+			<h3>Common Pizza Ingredients</h3>
+			<ul class="ingredients-list">
+				<li>Pizza dough</li>
+				<li>Tomato sauce</li>
+				<li>Mozzarella cheese</li>
+				<li>Olives, onions, mushrooms</li>
+				<li>Herbs like oregano and basil</li>
+			</ul>
+		</section>
+
+		<section id="pizza-table" class="content-section">
+			<h2>Pizza Menu Table</h2>
+			<table border="1" cellpadding="8" cellspacing="0">
+				<caption>Different Pizza Types, Ingredients, and Prices</caption>
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Ingredients</th>
+						<th>Price</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>Margherita</td>
+						<td>Tomato sauce, mozzarella, basil</td>
+						<td>$8</td>
+					</tr>
+					<tr>
+						<td>Pepperoni</td>
+						<td>Tomato sauce, mozzarella, pepperoni</td>
+						<td>$10</td>
+					</tr>
+					<tr>
+						<td rowspan="2">Veggie Special</td>
+						<td>Mushroom, capsicum, onion, olives</td>
+						<td>$9</td>
+					</tr>
+					<tr>
+						<td>Extra cheese topping</td>
+						<td>$11</td>
+					</tr>
+					<tr>
+						<td colspan="2">Family Combo (2 large pizzas + drink)</td>
+						<td>$22</td>
+					</tr>
+				</tbody>
+			</table>
+		</section>
+
+		<section id="media" class="content-section">
+			<h2>Watch: How Pizza Is Made</h2>
+			<p>This short video shows a pizza-making process.</p>
+			<iframe
+				width="560"
+				height="315"
+				src="https://www.youtube.com/embed/sv3TXMSv6Lw"
+				title="YouTube video player"
+				allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+				allowfullscreen
+			></iframe>
+		</section>
+
+		<section id="order-form" class="content-section">
+			<h2>Order Your Pizza</h2>
+			<form action="#" method="post" class="pizza-order-form">
+				<p>
+					<label for="customer-name">Full Name:</label><br>
+					<input type="text" id="customer-name" name="customer_name" placeholder="Enter your full name" required>
+				</p>
+
+				<p>
+					<label for="customer-email">Email:</label><br>
+					<input type="email" id="customer-email" name="customer_email" placeholder="example@email.com" required>
+				</p>
+
+				<p>
+					<label for="pizza-count">Number of Pizzas:</label><br>
+					<input type="number" id="pizza-count" name="pizza_count" min="1" max="10" required>
+				</p>
+
+				<fieldset>
+					<legend>Pizza Size</legend>
+					<label for="size-small">
+						<input type="radio" id="size-small" name="pizza_size" value="small" required>
+						Small
+					</label>
+					<label for="size-medium">
+						<input type="radio" id="size-medium" name="pizza_size" value="medium">
+						Medium
+					</label>
+					<label for="size-large">
+						<input type="radio" id="size-large" name="pizza_size" value="large">
+						Large
+					</label>
+				</fieldset>
+
+				<fieldset>
+					<legend>Extra Toppings</legend>
+					<label for="top-cheese">
+						<input type="checkbox" id="top-cheese" name="toppings" value="extra_cheese">
+						Extra Cheese
+					</label>
+					<label for="top-olives">
+						<input type="checkbox" id="top-olives" name="toppings" value="olives">
+						Olives
+					</label>
+					<label for="top-mushroom">
+						<input type="checkbox" id="top-mushroom" name="toppings" value="mushroom">
+						Mushroom
+					</label>
+				</fieldset>
+
+				<p>
+					<label for="crust-type">Choose Crust Type:</label><br>
+					<select id="crust-type" name="crust_type" required>
+						<option value="">-- Select crust --</option>
+						<option value="thin">Thin Crust</option>
+						<option value="classic">Classic Crust</option>
+						<option value="stuffed">Stuffed Crust</option>
+					</select>
+				</p>
+
+				<p>
+					<button type="submit">Place Order</button>
+					<button type="reset">Reset Form</button>
+				</p>
+			</form>
+		</section>
+	</main>
+
+	<footer class="site-footer" id="footer">
+	
+		<p><a href="#top">Back to top</a></p>
+	</footer>
+</body>
+</html>
