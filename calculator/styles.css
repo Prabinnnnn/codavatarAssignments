@@ -1,0 +1,139 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.calculator {
+  background-color: #2d2d2d;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  width: 320px;
+}
+
+.display {
+  margin-bottom: 20px;
+}
+
+#display {
+  width: 100%;
+  padding: 16px;
+  font-size: 24px;
+  border: none;
+  border-radius: 8px;
+  background-color: #1c1c1c;
+  color: #00ff00;
+  text-align: right;
+  font-weight: 500;
+  outline: none;
+}
+
+#display:focus {
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.3);
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.btn {
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background-color: #3d3d3d;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background-color: #4d4d4d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-number {
+  background-color: #404040;
+}
+
+.btn-number:hover {
+  background-color: #505050;
+}
+
+.btn-operator {
+  background-color: #ff9500;
+  color: #ffffff;
+}
+
+.btn-operator:hover {
+  background-color: #ffaa2a;
+}
+
+.btn-function {
+  background-color: #df5e32;
+  color: #ffffff;
+}
+
+.btn-function:hover {
+  background-color: #ea6f44;
+}
+
+.btn-equals {
+  background-color: #4caf50;
+  color: #ffffff;
+  grid-column: 4;
+}
+
+.btn-equals:hover {
+  background-color: #66bb6a;
+}
+
+.btn-zero {
+  grid-column: span 2;
+}
+
+@media (max-width: 400px) {
+  .calculator {
+    width: 280px;
+    padding: 16px;
+  }
+
+  .btn {
+    padding: 14px;
+    font-size: 16px;
+  }
+
+  #display {
+    padding: 12px;
+    font-size: 20px;
+  }
+
+  .buttons {
+    gap: 8px;
+  }
+}
