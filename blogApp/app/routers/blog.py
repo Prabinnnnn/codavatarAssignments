@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from ..auth import CurrentUser
+from ..auth import CurrentUser, get_current_user_optional
 from ..models.blog import BlogPost
+from ..models.user import User
 from ..schemas.blog import BlogCreate, BlogResponse, BlogUpdate
 from ..database import get_db
 from ..utils import get_blog_likes_info
@@ -39,17 +40,28 @@ def create_blog(payload: BlogCreate, db: Session = Depends(get_db), *, current_u
 
 
 @router.get("/", response_model=list[BlogResponse])
-def list_blogs(db: Session = Depends(get_db), skip: int = 0, limit: int = 10):
+def list_blogs(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 10,
+    current_user: User | None = Depends(get_current_user_optional),
+):
     blogs = db.query(BlogPost).offset(skip).limit(limit).all()
-    return [_add_likes_info(blog, None, db) for blog in blogs]
+    current_user_id = current_user.id if current_user is not None else None
+    return [_add_likes_info(blog, current_user_id, db) for blog in blogs]
 
 
 @router.get("/{blog_id}", response_model=BlogResponse)
-def get_blog(blog_id: int, db: Session = Depends(get_db)):
+def get_blog(
+    blog_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional),
+):
     blog = db.get(BlogPost, blog_id)
     if blog is None:
         raise HTTPException(status_code=404, detail="Blog post not found")
-    return _add_likes_info(blog, None, db)
+    current_user_id = current_user.id if current_user is not None else None
+    return _add_likes_info(blog, current_user_id, db)
 
 
 @router.put("/{blog_id}", response_model=BlogResponse)

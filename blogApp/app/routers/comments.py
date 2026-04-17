@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from ..auth import CurrentUser
+from ..auth import CurrentUser, get_current_user_optional
 from ..models.blog import BlogPost
 from ..models.comment import Comment
+from ..models.user import User
 from ..schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 from ..database import get_db
 from ..utils import get_comment_likes_info
@@ -51,12 +52,17 @@ def create_comment(
 
 
 @router.get("/blogs/{blog_id}/comments", response_model=list[CommentResponse])
-def list_comments(blog_id: int, db: Session = Depends(get_db)):
+def list_comments(
+    blog_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional),
+):
     blog = db.get(BlogPost, blog_id)
     if blog is None:
         raise HTTPException(status_code=404, detail="Blog post not found")
     comments = db.query(Comment).filter(Comment.blog_id == blog_id).all()
-    return [_add_likes_info(c, None, db) for c in comments]
+    current_user_id = current_user.id if current_user is not None else None
+    return [_add_likes_info(c, current_user_id, db) for c in comments]
 
 
 @router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -93,8 +99,13 @@ def update_comment(
 
 
 @router.get("/comments/{comment_id}", response_model=CommentResponse)
-def get_comment(comment_id: int, db: Session = Depends(get_db)):
+def get_comment(
+    comment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user_optional),
+):
     comment = db.get(Comment, comment_id)
     if comment is None:
         raise HTTPException(status_code=404, detail="Comment not found")
-    return comment
+    current_user_id = current_user.id if current_user is not None else None
+    return _add_likes_info(comment, current_user_id, db)

@@ -17,7 +17,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 password_hash = PasswordHash.recommended()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -54,8 +54,26 @@ def authenticate_user(db: Session, username: str, password: str) -> User | None:
     return user
 
 
+def _get_user_from_token(token: str, db: Session) -> User | None:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            return None
+        token_data = TokenData(username=username)
+    except InvalidTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+    user = get_user_by_username(db, token_data.username or "")
+    return user
+
+
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    token: Annotated[str | None, Depends(oauth2_scheme)],
     db: Annotated[Session, Depends(get_db)],
 ) -> User:
     credentials_exception = HTTPException(
@@ -63,19 +81,23 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except InvalidTokenError as exc:
-        raise credentials_exception from exc
+    if token is None:
+        raise credentials_exception
 
-    user = get_user_by_username(db, token_data.username or "")
+    user = _get_user_from_token(token, db)
     if user is None:
         raise credentials_exception
     return user
+
+
+async def get_current_user_optional(
+    token: Annotated[str | None, Depends(oauth2_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User | None:
+    if token is None:
+        return None
+
+    return _get_user_from_token(token, db)
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
