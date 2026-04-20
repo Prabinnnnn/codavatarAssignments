@@ -7,3 +7,4 @@ python-dotenv==1.0.0
 PyJWT==2.8.1
 pwdlib==4.0.0
 alembic==1.13.1
+redis==5.0.1

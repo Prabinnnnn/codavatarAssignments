@@ -2,12 +2,13 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 from sqlalchemy.orm import Session
 
+from .cache import blacklist_token, is_token_blacklisted, rate_limit_login_attempt
 from .schemas.auth import Token, TokenData, UserCreate, UserPublic
 from .database import get_db
 from .models.user import User
@@ -56,6 +57,8 @@ def authenticate_user(db: Session, username: str, password: str) -> User | None:
 
 def _get_user_from_token(token: str, db: Session) -> User | None:
     try:
+        if is_token_blacklisted(token):
+            raise InvalidTokenError("Token has been revoked")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
         if username is None:
@@ -123,9 +126,20 @@ def register_user(payload: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login_for_access_token(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(get_db),
 ):
+    client_host = request.client.host if request.client is not None else "unknown"
+
+    try:
+        rate_limit_login_attempt(client_host)
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Try again later.",
+        ) from exc
+
     user = authenticate_user(db, form_data.username, form_data.password)
     if user is None:
         raise HTTPException(
@@ -139,3 +153,33 @@ def login_for_access_token(
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     return Token(access_token=access_token)
+
+
+@router.post("/logout")
+def logout_user(
+    token: Annotated[str | None, Depends(oauth2_scheme)],
+    current_user: CurrentUser,
+):
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
+    except InvalidTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+    expires_at = payload.get("exp")
+    if expires_at is not None:
+        expires_at_dt = datetime.fromtimestamp(expires_at, tz=timezone.utc)
+        ttl_seconds = int((expires_at_dt - datetime.now(timezone.utc)).total_seconds())
+        blacklist_token(token, ttl_seconds)
+
+    return {"message": f"User {current_user.username} logged out successfully"}

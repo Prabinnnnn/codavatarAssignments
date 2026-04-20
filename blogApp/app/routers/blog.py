@@ -2,6 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..auth import CurrentUser, get_current_user_optional
+from ..cache import (
+    blog_detail_cache_key,
+    blog_list_cache_key,
+    get_cached_payload,
+    invalidate_blog_cache,
+    set_cached_payload,
+)
 from ..models.blog import BlogPost
 from ..models.user import User
 from ..schemas.blog import BlogCreate, BlogResponse, BlogUpdate
@@ -36,7 +43,9 @@ def create_blog(payload: BlogCreate, db: Session = Depends(get_db), *, current_u
     db.add(blog)
     db.commit()
     db.refresh(blog)
-    return _add_likes_info(blog, current_user.id, db)
+    response = _add_likes_info(blog, current_user.id, db)
+    invalidate_blog_cache(blog.id)
+    return response
 
 
 @router.get("/", response_model=list[BlogResponse])
@@ -46,9 +55,16 @@ def list_blogs(
     limit: int = 10,
     current_user: User | None = Depends(get_current_user_optional),
 ):
-    blogs = db.query(BlogPost).offset(skip).limit(limit).all()
     current_user_id = current_user.id if current_user is not None else None
-    return [_add_likes_info(blog, current_user_id, db) for blog in blogs]
+    cache_key = blog_list_cache_key(skip, limit, current_user_id)
+    cached_response = get_cached_payload(cache_key)
+    if cached_response is not None:
+        return cached_response
+
+    blogs = db.query(BlogPost).offset(skip).limit(limit).all()
+    response = [_add_likes_info(blog, current_user_id, db) for blog in blogs]
+    set_cached_payload(cache_key, response)
+    return response
 
 
 @router.get("/{blog_id}", response_model=BlogResponse)
@@ -57,11 +73,18 @@ def get_blog(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
 ):
+    current_user_id = current_user.id if current_user is not None else None
+    cache_key = blog_detail_cache_key(blog_id, current_user_id)
+    cached_response = get_cached_payload(cache_key)
+    if cached_response is not None:
+        return cached_response
+
     blog = db.get(BlogPost, blog_id)
     if blog is None:
         raise HTTPException(status_code=404, detail="Blog post not found")
-    current_user_id = current_user.id if current_user is not None else None
-    return _add_likes_info(blog, current_user_id, db)
+    response = _add_likes_info(blog, current_user_id, db)
+    set_cached_payload(cache_key, response)
+    return response
 
 
 @router.put("/{blog_id}", response_model=BlogResponse)
@@ -83,7 +106,9 @@ def update_blog(
 
     db.commit()
     db.refresh(blog)
-    return _add_likes_info(blog, current_user.id, db)
+    response = _add_likes_info(blog, current_user.id, db)
+    invalidate_blog_cache(blog.id)
+    return response
 
 
 @router.delete("/{blog_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -96,3 +121,4 @@ def delete_blog(blog_id: int, db: Session = Depends(get_db), *, current_user: Cu
 
     db.delete(blog)
     db.commit()
+    invalidate_blog_cache(blog_id)

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from ..cache import invalidate_blog_cache, invalidate_comment_cache
 from ..auth import CurrentUser
 from ..models.blog import BlogPost
 from ..models.comment import Comment
@@ -37,8 +38,10 @@ def like_blog(
     db.add(like)
     db.commit()
     db.refresh(like)
+    invalidate_blog_cache(blog_id)
 
-    return {"message": "Post liked successfully", "likes_count": len(blog.likes) + 1}
+    likes_count = db.query(BlogLike).filter(BlogLike.blog_id == blog_id).count()
+    return {"message": "Post liked successfully", "likes_count": likes_count}
 
 
 @router.delete("/blogs/{blog_id}/likes", status_code=status.HTTP_200_OK)
@@ -63,8 +66,10 @@ def unlike_blog(
 
     db.delete(like)
     db.commit()
+    invalidate_blog_cache(blog_id)
 
-    return {"message": "Post unliked successfully", "likes_count": len(blog.likes) - 1}
+    likes_count = db.query(BlogLike).filter(BlogLike.blog_id == blog_id).count()
+    return {"message": "Post unliked successfully", "likes_count": likes_count}
 
 
 @router.post("/comments/{comment_id}/likes", status_code=status.HTTP_201_CREATED)
@@ -93,8 +98,10 @@ def like_comment(
     db.add(like)
     db.commit()
     db.refresh(like)
+    invalidate_comment_cache(comment_id)
 
-    return {"message": "Comment liked successfully", "likes_count": len(comment.likes) + 1}
+    likes_count = db.query(CommentLike).filter(CommentLike.comment_id == comment_id).count()
+    return {"message": "Comment liked successfully", "likes_count": likes_count}
 
 
 @router.delete("/comments/{comment_id}/likes", status_code=status.HTTP_200_OK)
@@ -119,5 +126,7 @@ def unlike_comment(
 
     db.delete(like)
     db.commit()
+    invalidate_comment_cache(comment_id)
 
-    return {"message": "Comment unliked successfully", "likes_count": len(comment.likes) - 1}
+    likes_count = db.query(CommentLike).filter(CommentLike.comment_id == comment_id).count()
+    return {"message": "Comment unliked successfully", "likes_count": likes_count}

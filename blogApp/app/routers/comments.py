@@ -2,6 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..auth import CurrentUser, get_current_user_optional
+from ..cache import (
+    comment_detail_cache_key,
+    comment_list_cache_key,
+    get_cached_payload,
+    invalidate_comment_cache,
+    set_cached_payload,
+)
 from ..models.blog import BlogPost
 from ..models.comment import Comment
 from ..models.user import User
@@ -48,7 +55,9 @@ def create_comment(
     db.add(comment)
     db.commit()
     db.refresh(comment)
-    return _add_likes_info(comment, current_user.id, db)
+    response = _add_likes_info(comment, current_user.id, db)
+    invalidate_comment_cache(comment.id)
+    return response
 
 
 @router.get("/blogs/{blog_id}/comments", response_model=list[CommentResponse])
@@ -57,12 +66,19 @@ def list_comments(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
 ):
+    current_user_id = current_user.id if current_user is not None else None
+    cache_key = comment_list_cache_key(blog_id, current_user_id)
+    cached_response = get_cached_payload(cache_key)
+    if cached_response is not None:
+        return cached_response
+
     blog = db.get(BlogPost, blog_id)
     if blog is None:
         raise HTTPException(status_code=404, detail="Blog post not found")
     comments = db.query(Comment).filter(Comment.blog_id == blog_id).all()
-    current_user_id = current_user.id if current_user is not None else None
-    return [_add_likes_info(c, current_user_id, db) for c in comments]
+    response = [_add_likes_info(c, current_user_id, db) for c in comments]
+    set_cached_payload(cache_key, response)
+    return response
 
 
 @router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -95,6 +111,7 @@ def update_comment(
 
     db.commit()
     db.refresh(comment)
+    invalidate_comment_cache(comment.id)
     return comment
 
 
@@ -104,8 +121,15 @@ def get_comment(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user_optional),
 ):
+    current_user_id = current_user.id if current_user is not None else None
+    cache_key = comment_detail_cache_key(comment_id, current_user_id)
+    cached_response = get_cached_payload(cache_key)
+    if cached_response is not None:
+        return cached_response
+
     comment = db.get(Comment, comment_id)
     if comment is None:
         raise HTTPException(status_code=404, detail="Comment not found")
-    current_user_id = current_user.id if current_user is not None else None
-    return _add_likes_info(comment, current_user_id, db)
+    response = _add_likes_info(comment, current_user_id, db)
+    set_cached_payload(cache_key, response)
+    return response

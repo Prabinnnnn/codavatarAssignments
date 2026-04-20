@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from sqlalchemy import inspect, text
 
 from . import models  # noqa: F401
+from .cache import redis_client
 from .database import Base, engine
 from .auth import router as auth_router
 from .routers import blog, comments, likes
@@ -24,7 +25,17 @@ def ensure_blog_posts_owner_column() -> None:
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     ensure_blog_posts_owner_column()
+    if redis_client is not None:
+        try:
+            redis_client.ping()
+        except Exception:
+            pass
     yield
+    if redis_client is not None:
+        try:
+            redis_client.close()
+        except Exception:
+            pass
 
 
 app = FastAPI(title="Blog CRUD API", lifespan=lifespan)
