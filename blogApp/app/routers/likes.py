@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..cache import invalidate_blog_cache, invalidate_comment_cache
@@ -7,6 +7,7 @@ from ..models.blog import BlogPost
 from ..models.comment import Comment
 from ..database import get_db
 from ..models.likes import BlogLike, CommentLike
+from ..email_service import notification_enabled, send_like_notification
 
 
 router = APIRouter(tags=["likes"])
@@ -15,6 +16,7 @@ router = APIRouter(tags=["likes"])
 @router.post("/blogs/{blog_id}/likes", status_code=status.HTTP_201_CREATED)
 def like_blog(
     blog_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     *,
     current_user: CurrentUser,
@@ -38,6 +40,16 @@ def like_blog(
     db.add(like)
     db.commit()
     db.refresh(like)
+
+    if notification_enabled() and blog.owner_id != current_user.id and blog.owner and blog.owner.email:
+        background_tasks.add_task(
+            send_like_notification,
+            blog.owner.email,
+            blog.owner.username,
+            current_user.username,
+            blog.title,
+            blog.id,
+        )
     invalidate_blog_cache(blog_id)
 
     likes_count = db.query(BlogLike).filter(BlogLike.blog_id == blog_id).count()

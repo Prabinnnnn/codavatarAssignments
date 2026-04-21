@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
+from ..email_service import notification_enabled, send_comment_notification
 
 from ..auth import CurrentUser, get_current_user_optional
 from ..cache import (
@@ -39,6 +41,7 @@ router = APIRouter(tags=["comments"])
 def create_comment(
     blog_id: int,
     payload: CommentCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     *,
     current_user: CurrentUser,
@@ -55,6 +58,18 @@ def create_comment(
     db.add(comment)
     db.commit()
     db.refresh(comment)
+
+    # scheduling notification after successful write to db
+    if notification_enabled() and blog.owner_id != current_user.id and blog.owner and blog.owner.email:
+        background_tasks.add_task(
+            send_comment_notification,
+            blog.owner.email,
+            blog.owner.username,
+            current_user.username,
+            blog.title,
+            blog.id,
+            payload.content[:120],
+        )
     response = _add_likes_info(comment, current_user.id, db)
     invalidate_comment_cache(comment.id)
     return response
