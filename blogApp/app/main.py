@@ -7,6 +7,7 @@ from . import models  # noqa: F401
 from .cache import redis_client
 from .database import Base, engine
 from .auth import router as auth_router
+from .graphql_schema import graphql_router
 from .routers import blog, comments, likes
 
 
@@ -44,6 +45,7 @@ app.include_router(auth_router)
 app.include_router(blog.router)
 app.include_router(comments.router)
 app.include_router(likes.router)
+app.include_router(graphql_router, prefix="/graphql", tags=["graphql"])
 
 
 @app.get("/")
