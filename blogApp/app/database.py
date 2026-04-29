@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+if SQLALCHEMY_DATABASE_URL = and SQLALCHEMY_DATABASE_URL.startwith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
 
 if not SQLALCHEMY_DATABASE_URL:
     raise RuntimeError("DATABASE_URL is not set. Add it to your .env file.")
